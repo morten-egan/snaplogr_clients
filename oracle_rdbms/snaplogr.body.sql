@@ -14,6 +14,24 @@ as
 
 	rrun									allstats;
 
+	-- Support loglist
+	type list_entry is record (
+		entry								clob
+	);
+	type list_entries is table of list_entry index by pls_integer;
+	type log_lists is table of list_entries index by varchar2(4000);
+
+	loglists								log_lists;
+
+	-- Support errors
+	type error_entry is record (
+		errnum								number
+		, errmesg							varchar2(4000)
+	);
+	type error_list is table of error_entry index by pls_integer;
+
+	errorlist								error_list;
+
 	procedure snapit
 	
 	as
@@ -284,6 +302,71 @@ as
 				raise;
 	
 	end er;
+
+	procedure addtolist (
+		list_name						in				varchar2
+		, logstring						in				varchar2
+	)
+	
+	as
+
+		new_entry						list_entry;
+	
+	begin
+	
+		dbms_application_info.set_action('addtolist');
+
+		new_entry.entry := logstring;
+
+		if loglists.exists(list_name) then
+			loglists(list_name)(loglists(list_name).last + 1) := new_entry;
+		else
+			loglists(list_name)(1) := new_entry;
+		end if;
+	
+		dbms_application_info.set_action(null);
+	
+		exception
+			when others then
+				dbms_application_info.set_action(null);
+				raise;
+	
+	end addtolist;
+
+	procedure loglist (
+		list_name						in				varchar2
+	)
+	
+	as
+
+		list_content					json_list := json_list();
+	
+	begin
+	
+		dbms_application_info.set_action('loglist');
+
+		if loglists.exists(list_name) then
+			snap_content := json();
+			snap_content.put('type', 2);
+			for x in 1..loglists(list_name).count loop
+				list_content.append(loglists(list_name)(x).entry);
+			end loop;
+			snap_content.put('content', list_content);
+			snapit;
+			-- Remove the list from collection
+			loglists.delete(list_name);
+		else
+			raise_application_error(-20001, 'List does not exist in this scope');
+		end if;
+	
+		dbms_application_info.set_action(null);
+	
+		exception
+			when others then
+				dbms_application_info.set_action(null);
+				raise;
+	
+	end loglist;
 
 begin
 

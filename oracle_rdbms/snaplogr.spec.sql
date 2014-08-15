@@ -47,5 +47,23 @@ as
 		stop_val						in				number default 500
 	);
 
+	/** Add a message to a list of messages
+	* @author Morten Egan
+	* @param list_name The name of the list to add a message to. List created if it does not exist
+	* @param logstring The simple string to ship to the list
+	*/
+	procedure addtolist (
+		list_name						in				varchar2
+		, logstring						in				varchar2
+	);
+
+	/** Send a complete list of log entries to snaplog
+	* @author Morten Egan
+	* @param list_name The list to snaplog
+	*/
+	procedure loglist (
+		list_name						in				varchar2
+	);
+
 end snaplogr;
 /
